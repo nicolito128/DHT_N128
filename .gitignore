@@ -1,0 +1,13 @@
+# Programs for testing and examples
+*.ino
+!examples/**/*
+
+# Build directory
+build/
+*.a
+*.o
+
+# IDE
+.vscode
+.idea
+.DS_Store
