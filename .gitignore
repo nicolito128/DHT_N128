@@ -4,6 +4,7 @@
 
 # Build directory
 build/
+.cache/
 *.a
 *.o
 
