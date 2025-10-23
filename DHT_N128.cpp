@@ -72,7 +72,7 @@ raw_magnitude DHT::rawRead() {
   _raw |= (_data[2] << 8);
   _raw |= (_data[3]);
 
-  return raw;
+  return _raw;
 }
 
 bool DHT::_readBit() {
