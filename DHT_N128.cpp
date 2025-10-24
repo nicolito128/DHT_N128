@@ -1,75 +1,163 @@
 #include "DHT_N128.hpp"
 
+// Float limit used to send not working values.
+#define FLOAT_MAX 3.4028235E+38
+// Interval between each communication with the sensor.
 #define MIN_INTERVAL_MILLIS 2000
-
-#define TRANSMISSION_TIMEOUT_MICROS 50
-
+// Pull up time in microseconds for the MCU.
+#define DEFAULT_PULL_MICROS 50
+// MCU cycles limit to avoid infinity loops.
 #define CYCLES_TIMEOUT UINT32_MAX
 // "at least 18ms"
-#define DHT11_FIRST_DELAY_MICROS 18500
+#define DHT11_START_MICROS 18500
 // "1~10ms"
-#define DHT22_FIRST_DELAY_MICROS 1100
+#define DHT22_START_MICROS 1100
 
-DHT::DHT(int pin, enum DHT_Type dht_typ) {
+// Macro helper for early return on errors
+#define IFERR(err) \
+  if (err != ErrorCode::None) {\
+    return err;\
+  }\
+
+String errorToString(ErrorCode err) {
+  switch(err) {
+  case ErrorCode::MinIntervalWait:
+    return "Must wait MIN_INTERVAL_MILLIS to take another reading";
+
+  case ErrorCode::Timeout:
+    return "Generic CYCLES_TIMEOUT limit error";
+      
+  case ErrorCode::SensorPullLow:
+    return "Sensor pulls low fails. Sensor response signal stage";
+
+  case ErrorCode::SensorPullUp:
+    return "Sensor pulls up fails. Sensor response signal stage";
+
+  case ErrorCode::StreamLOW:
+    return "LOW signal of sensor data stream of bits fails";
+
+  case ErrorCode::StreamHIGH:
+    return "HIGH signal of sensor data stream of bits fails";
+
+  case ErrorCode::BadChecksum:
+    return "Checksum do not match";
+
+  case ErrorCode::None:
+  default:
+    return "No Error";
+  }
+}
+
+DHT::DHT(int pin, SensorType sen_typ) {
   _pin = pin;
-  _typ = dht_typ;
+  _typ = sen_typ;
 
-  _pullTime = DEFAULT_PULL_TIME;
-  _maxcycles = microsecondsToClockCycles(1000);
+  _pullTime = DEFAULT_PULL_MICROS;
 }
 
 void DHT::begin() {
   pinMode(_pin, INPUT_PULLUP);
+  _started = false;
+  _maxcycles = microsecondsToClockCycles(1000);
+  _lastreadTime = millis() - MIN_INTERVAL_MILLIS;
+}
+
+void DHT::setPullTime(unsigned long us) {
+  _pullTime = us;
+}
+
+float DHT::readHumidity() {
+  ErrorCode err = rawRead();
+  // If something is not working return an impossible value.
+  if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
+    return FLOAT_MAX;
+  }
+
+  return _humidity;
+}
+
+float DHT::readTemperature(TempScale scale = TempScale::Celsius) {
+  ErrorCode err = rawRead();
+  // If something is not working return an impossible value.
+  if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
+    return FLOAT_MAX;
+  }
+  
+  switch(scale) {
+    case TempScale::Fahrenheit:
+      return _temperature * 1.8 + 32;
+
+    case TempScale::Kelvin:
+      return _temperature + 273.15;
+    
+    case TempScale::Celsius:
+    default:
+      return _temperature;
+  }
 }
 
 void DHT::_startSignal() {
   pinMode(_pin, INPUT_PULLUP);
-  delay(1);
 
   // Dependiendo del sensor esperamos un tiempo determinado en LOW
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, LOW);
   switch (_typ) {
-  case DHT22:
-    delayMicroseconds(DHT22_FIRST_DELAY_MICROS);
+  case SensorType::DHT22:
+    delayMicroseconds(DHT22_START_MICROS);
     break;
   
-  case DHT11:
+  case SensorType::DHT11:
   default:
-    delayMicroseconds(DHT11_FIRST_DELAY_MICROS);
+    delayMicroseconds(DHT11_START_MICROS);
   }
 
   // Termina la señal de inicio y damos lugar a la respuesta del sensor
-  digitalWrite(_pin, LOW);
   pinMode(_pin, INPUT_PULLUP);
   delayMicroseconds(_pullTime);   
 }
 
-raw_magnitude DHT::rawRead() {
-  _clear();
-
-  _startSignal();
-
+ErrorCode DHT::_sensorResponseSignals() {
   if (_awaitPulse(LOW) == CYCLES_TIMEOUT) {
-    return CYCLES_TIMEOUT;
+    return ErrorCode::SensorPullLow;
   }
+
   if (_awaitPulse(HIGH) == CYCLES_TIMEOUT) {
-    return CYCLES_TIMEOUT;
+    return ErrorCode::SensorPullUp;
   }
 
+  return ErrorCode::None;
+}
+
+ErrorCode DHT::_readBitStream() {
+  ErrorCode err = ErrorCode::None;
   for (int i = 0; i < 40; ++i) {
-    _bits[i] = _readBit();
+    IFERR(_readBit(i))
+  }
+  return err;
+}
+
+ErrorCode DHT::_readBit(int pos) {
+  uint32_t nextBitLowTime, highBitTime;
+
+  if ((nextBitLowTime = _awaitPulse(LOW)) == CYCLES_TIMEOUT) {
+    return ErrorCode::StreamLOW;
   }
 
-  Serial.println("Printing bits:");
-  for (int i = 0; i < 40; ++i) {
-    Serial.print(_bits[i]);
-    if ((i + 1) % 4 == 0 && i != 39) {
-      Serial.print(" ");
-    }
+  if ((highBitTime = _awaitPulse(HIGH)) == CYCLES_TIMEOUT) {
+    return ErrorCode::StreamHIGH;
   }
-  Serial.println();
 
+  if (highBitTime > nextBitLowTime) {
+    _bits[pos] = 1;
+  } else {
+    _bits[pos] = 0;
+  }
+
+  return ErrorCode::None;
+}
+
+ErrorCode DHT::_parseRawStream() {
   for (int i = 0; i < 5; ++i) {
       _data[i] = 0;
   }
@@ -80,26 +168,60 @@ raw_magnitude DHT::rawRead() {
       }
   }
 
-  Serial.println((_data[0] << 8) | _data[1]);
-  Serial.println((_data[2] << 8) | _data[3]);
-  Serial.println(_data[4] == (_data[0] + _data[1] + _data[2] + _data[3]));
-
-  return _raw;
-}
-
-bool DHT::_readBit() {
-  unsigned long lowtick, hightick;
-
-  lowtick = _awaitPulse(LOW);
-  hightick = _awaitPulse(HIGH);
-
-  if (hightick > lowtick) {
-    return 1;
-  } else {
-    return 0;
+  uint8_t checksum = _data[4];
+  uint8_t sum = (_data[0] + _data[1] + _data[2] + _data[3]);
+  if (checksum != sum) {
+    return ErrorCode::BadChecksum;
   }
 
-  return 0;
+  _lastraw = (_data[0] << 24) | (_data[1] << 16) | (_data[3] << 8) | (_data[4]);
+
+  // Extracting the bit from temperature to determinate if it is negative
+  bool b = _data[2] >> 7;
+  if (b) {
+    _neg_temp = true;
+    // Remove the signed bit
+    _data[2] &= 0b01111111;
+  } else {
+    _neg_temp = false;
+  }
+
+  _humidity = (float)((_data[0] << 8) | _data[1]) / 10;
+  _temperature = (float)((_data[2] << 8) | _data[3]) / 10;
+
+  if (_neg_temp) {
+    _temperature *= (-1);
+  }
+  
+  return ErrorCode::None;
+}
+
+ErrorCode DHT::rawRead(uint32_t *dst = NULL) {
+  unsigned long currentTime = millis();
+  if (currentTime - _lastreadTime < MIN_INTERVAL_MILLIS) {
+    return ErrorCode::MinIntervalWait;
+  }
+  _lastreadTime = currentTime;
+
+  _clear();
+
+  _startSignal();
+
+  IFERR(_sensorResponseSignals());
+
+  IFERR(_readBitStream());
+
+  _parseRawStream();
+
+  if (dst != NULL) {
+    (*dst) = _lastraw;
+  }
+
+  if (!_started) {
+    _started = true;
+  }
+
+  return ErrorCode::None;
 }
 
 uint32_t DHT::_awaitPulse(int state) {
@@ -117,7 +239,7 @@ uint32_t DHT::_awaitPulse(int state) {
 
 void DHT::_clear() {
   _data[0] = _data[1] = _data[2] = _data[3], _data[4] = 0;
-  _raw = 0;
+  _lastraw = 0;
 
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, LOW);

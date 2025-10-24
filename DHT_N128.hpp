@@ -1,43 +1,102 @@
 #ifndef DHT_N128_H_
 #define DHT_N128_H_
-#define DEFAULT_PULL_TIME 50
 
 #include <Arduino.h>
 
-typedef uint32_t raw_magnitude;
-
-enum DHT_Type {
+enum class SensorType {
   DHT11,
   DHT22, // AM2302
 };
 
+enum class TempScale {
+  Celsius,
+  Fahrenheit,
+  Kelvin,
+};
+
+enum class ErrorCode {
+  None,
+  // Must wait MIN_INTERVAL_MILLIS to take another reading.
+  MinIntervalWait,
+  // Generic CYCLES_TIMEOUT limit error.
+  Timeout,
+  // Sensor pulls low fails. Sensor response signal stage.
+  SensorPullLow,
+  // Sensor pulls up fails. Sensor response signal stage.
+  SensorPullUp,
+  // LOW signal of sensor data stream of bits fails.
+  StreamLOW,
+  // HIGH signal of sensor data stream of bits fails.
+  StreamHIGH,
+  // Checksum do not match.
+  BadChecksum,
+};
+
+String errorToString(ErrorCode);
+
 class DHT {
-public:  
-  DHT(int pin, enum DHT_Type dht_typ);
+public:
+  DHT(int, SensorType);
 
   void begin();
-  raw_magnitude rawRead();
+
+  // Set the MCU pull time. Default: 50 (microseconds)
+  void setPullTime(unsigned long us);
+
+  // Read for temperature. Default: TempScale::Celsius.
+  float readTemperature(TempScale = TempScale::Celsius);
+
+  // Read for relative humidity.
+  float readHumidity();
+
+  // Raw
+  ErrorCode rawRead(uint32_t* = NULL);
 
 private:
-  enum DHT_Type _typ;
+  // Sensor type to adjust the values of the protocol.
+  SensorType _typ;
 
-  bool _bits[40];
-
+  // Pin used by the sensor.
   int _pin;
 
-  uint8_t _pullTime, _data[5];
+  // If the first rawRead was already executed.
+  bool _started;
+  // If the current temperature is negative .
+  bool _neg_temp;
+  // Stream of bits in each reading cycle.
+  // STREAM = 16 bits of Relative Humidity + 16 bits of Temperature + 8 bits of Checksum.
+  // Checksum = 16b RH + 16b T.
+  bool _bits[40];
 
-  raw_magnitude _raw;
+  // Array of bytes for the stream of data.
+  // 8 bits RH + 8 bits RH + 8 bits T + 8 bits T + 8 bits Checksum.
+  uint8_t _data[5];
 
+  // Last raw stream of data expressed as an uint32.
+  uint32_t _lastraw;
+
+  // Max number of processor cycles.
   unsigned long _maxcycles;
+  // Last timestamp of the execution of rawRead.
+  unsigned long _lastreadTime;
+  // Pull time of the MCU response.
+  // Default: 50 us (microseconds).
+  unsigned long _pullTime;
 
+  float _temperature;
+  float _humidity;
+
+  // Start communication signal.
   void _startSignal();
+  // Clear the current states.
+  void _clear();
 
-  bool _readBit();
+  ErrorCode _sensorResponseSignals();
+  ErrorCode _readBitStream();
+  ErrorCode _readBit(int);
+  ErrorCode _parseRawStream();
 
   uint32_t _awaitPulse(int);
-
-  void _clear();
 };
 
 #endif
