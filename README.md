@@ -6,6 +6,10 @@ A simple library for using DHT-type sensors (DHT11, DHT22, etc.).
 
 Download and import the library in your IDE.
 
+### Arduino IDE
+
+Go to `Sketch |> Include Library |> Add .ZIP Library...`
+
 ## Usage
 
 ```cpp
@@ -33,6 +37,11 @@ void loop() {
 ```
 
 You can find more usages examples in [examples/](./examples/).
+
+## Acknowledgments
+
+* Eduardo Gomez (Professor. Head of "Robotics and Automation" subject).
+* Luciano Yurquina (Testing and Research).
 
 ## References
 
