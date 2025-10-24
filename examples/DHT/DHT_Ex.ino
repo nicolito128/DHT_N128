@@ -2,7 +2,7 @@
 // Reference Lib: https://github.com/nicolito128/DHT_N128
 // Public domain.
 // Author: nicolito128 (Nicolas A. Serna) <serna.nicolas.abel@gmail.com>
-#include "DHT_N128.hpp"
+#include <DHT_N128.hpp>
 
 // Digital PIN connected to the sensor
 #define PIN 7
