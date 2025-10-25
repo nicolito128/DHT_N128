@@ -174,7 +174,7 @@ ErrorCode DHT::_parseRawStream() {
     return ErrorCode::BadChecksum;
   }
 
-  _lastraw = (_data[0] << 24) | (_data[1] << 16) | (_data[3] << 8) | (_data[4]);
+  _lastraw = (_data[0] << 24) | (_data[1] << 16) | (_data[2] << 8) | (_data[3]);
 
   // Extracting the bit from temperature to determinate if it is negative
   bool b = _data[2] >> 7;
