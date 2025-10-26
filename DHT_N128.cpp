@@ -46,7 +46,7 @@ String errorToString(ErrorCode err) {
   }
 }
 
-DHT::DHT(int pin, SensorType sen_typ) {
+DHT::DHT(int pin, DHTSensorType sen_typ) {
   _pin = pin;
   _typ = sen_typ;
 
@@ -101,11 +101,11 @@ void DHT::_startSignal() {
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, LOW);
   switch (_typ) {
-  case SensorType::DHT22:
+  case DHTSensorType::DHT22:
     delayMicroseconds(DHT22_START_MICROS);
     break;
   
-  case SensorType::DHT11:
+  case DHTSensorType::DHT11:
   default:
     delayMicroseconds(DHT11_START_MICROS);
   }

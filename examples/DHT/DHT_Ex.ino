@@ -9,7 +9,7 @@
 
 // Create a new instance of the DHT class.
 // Use PIN (7) for communication and use DHT22 specification.
-DHT dht(PIN, SensorType::DHT22); // Take a look of SensorType for available options.
+DHT dht(PIN, DHTSensorType::DHT22); // Take a look of SensorType for available options.
 
 void setup() {
   Serial.begin(9600);

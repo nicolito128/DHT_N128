@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-enum class SensorType {
+enum class DHTSensorType {
   DHT11,
   DHT22, // AM2302
 };
@@ -36,7 +36,7 @@ String errorToString(ErrorCode);
 
 class DHT {
 public:
-  DHT(int, SensorType);
+  DHT(int, DHTSensorType);
 
   void begin();
 
@@ -54,7 +54,7 @@ public:
 
 private:
   // Sensor type to adjust the values of the protocol.
-  SensorType _typ;
+  DHTSensorType _typ;
 
   // Pin used by the sensor.
   int _pin;

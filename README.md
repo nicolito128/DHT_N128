@@ -17,7 +17,7 @@ Go to `Sketch |> Include Library |> Add .ZIP Library...`
 
 #define PIN 7
 
-DHT dht(PIN, SensorType::DHT22);
+DHT dht(PIN, DHTSensorType::DHT22);
 
 void setup() {
   Serial.begin(9600);
