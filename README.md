@@ -29,8 +29,12 @@ void loop() {
   float rh = dht.readHumidity(); // Relative Humidity
   float temp = dht.readTemperature(); // Default: TempScale::Celsius
 
-  Serial.print(rh); Serial.println(" %RH");
-  Serial.print(temp); Serial.println(" ˚C");
+  if (isnan(rh) || isnan(temp)) {
+    Serial.println("Error (Not-A-Number) when trying to read humidity and temperature.");
+  } else {
+    Serial.print(rh); Serial.println(" %RH");
+    Serial.print(temp); Serial.println(" ˚C");
+  }
 
   delay(2000);
 }
