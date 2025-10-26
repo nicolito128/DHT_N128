@@ -1,7 +1,5 @@
 #include "DHT_N128.hpp"
 
-// Float limit used to send not working values.
-#define FLOAT_MAX 3.4028235E+38
 // Interval between each communication with the sensor.
 #define MIN_INTERVAL_MILLIS 2000
 // Pull up time in microseconds for the MCU.
@@ -70,7 +68,7 @@ float DHT::readHumidity() {
   ErrorCode err = rawRead();
   // If something is not working return an impossible value.
   if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
-    return FLOAT_MAX;
+    return NAN;
   }
 
   return _humidity;
@@ -80,7 +78,7 @@ float DHT::readTemperature(TempScale scale = TempScale::Celsius) {
   ErrorCode err = rawRead();
   // If something is not working return an impossible value.
   if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
-    return FLOAT_MAX;
+    return NAN;
   }
   
   switch(scale) {
