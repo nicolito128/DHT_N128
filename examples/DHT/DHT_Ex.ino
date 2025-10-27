@@ -25,11 +25,27 @@ void loop() {
   float tempF = dht.readTemperature(TempScale::Fahrenheit); // Temperature as Fahrenheit
   float tempK = dht.readTemperature(TempScale::Kelvin); // Temperature as Kelvin
 
-  Serial.print(rh); Serial.println(" %RH");
-  Serial.print(tempC); Serial.println(" ˚C");
-  Serial.print(tempF); Serial.println(" ˚F");
-  Serial.print(tempK); Serial.println(" ˚K");
+  if (!isnan(rh)) {
+    Serial.print(rh); Serial.println(" %RH");
+  } else {
+    Serial.println("Humidity read error: NAN (Not-A-Number)");
+  }
+
+  if (!isnan(tempC) && !isnan(tempF) && !isnan(tempK)) {
+    Serial.print(tempC); Serial.println(" ˚C");
+    Serial.print(tempF); Serial.println(" ˚F");
+    Serial.print(tempK); Serial.println(" ˚K");
+  } else {
+    Serial.println("Temperature read error: NAN (Not-A-Number)");
+  }
+
   Serial.println("------------------------------------");
+
+  ErrorCode err = dht.error();
+  if (err != ErrorCode::None) {
+    Serial.println(errorToString(err));
+    Serial.println("------------------------------------");
+  }
 
   // Each sensor reading must occur in an interval of 2s.
   // Internally, if not enough time has passed, the last reading taken by the sensor is returned.

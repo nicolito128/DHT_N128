@@ -14,6 +14,7 @@
 // Macro helper for early return on errors
 #define IFERR(err) \
   if (err != ErrorCode::None) {\
+    _lastError = err;\
     return err;\
   }\
 
@@ -58,6 +59,7 @@ void DHT::begin() {
   _started = false;
   _maxcycles = microsecondsToClockCycles(1000);
   _lastreadTime = millis() - MIN_INTERVAL_MILLIS;
+  _lastError = ErrorCode::None;
 }
 
 void DHT::setPullTime(unsigned long us) {
@@ -67,7 +69,10 @@ void DHT::setPullTime(unsigned long us) {
 float DHT::readHumidity() {
   ErrorCode err = rawRead();
   // If something is not working return an impossible value.
-  if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
+  if (
+    (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) || 
+    (_lastError != ErrorCode::None && _lastError != ErrorCode::MinIntervalWait)
+  ) {
     return NAN;
   }
 
@@ -77,7 +82,10 @@ float DHT::readHumidity() {
 float DHT::readTemperature(TempScale scale = TempScale::Celsius) {
   ErrorCode err = rawRead();
   // If something is not working return an impossible value.
-  if (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) {
+  if (
+    (err != ErrorCode::None && err != ErrorCode::MinIntervalWait) || 
+    (_lastError != ErrorCode::None && _lastError != ErrorCode::MinIntervalWait)
+  ) {
     return NAN;
   }
   
@@ -238,9 +246,14 @@ uint32_t DHT::_awaitPulse(int state) {
 void DHT::_clear() {
   _data[0] = _data[1] = _data[2] = _data[3], _data[4] = 0;
   _lastraw = 0;
+  _lastError = ErrorCode::None;
 
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, LOW);
 
   pinMode(_pin, INPUT_PULLUP);
+}
+
+ErrorCode DHT::error() {
+  return _lastError;
 }

@@ -52,6 +52,9 @@ public:
   // Raw
   ErrorCode rawRead(uint32_t* = NULL);
 
+  // Returns the last catched error. Default: ErrorCode::None
+  ErrorCode error();
+
 private:
   // Sensor type to adjust the values of the protocol.
   DHTSensorType _typ;
@@ -85,6 +88,8 @@ private:
 
   float _temperature;
   float _humidity;
+
+  ErrorCode _lastError;
 
   // Start communication signal.
   void _startSignal();
