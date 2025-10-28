@@ -79,7 +79,7 @@ float DHT::readHumidity() {
   return _humidity;
 }
 
-float DHT::readTemperature(TempScale scale = TempScale::Celsius) {
+float DHT::readTemperature(TempScale scale) {
   ErrorCode err = rawRead();
   // If something is not working return an impossible value.
   if (
@@ -202,7 +202,7 @@ ErrorCode DHT::_parseRawStream() {
   return ErrorCode::None;
 }
 
-ErrorCode DHT::rawRead(uint32_t *dst = NULL) {
+ErrorCode DHT::rawRead(uint32_t *dst) {
   unsigned long currentTime = millis();
   if (currentTime - _lastreadTime < MIN_INTERVAL_MILLIS) {
     return ErrorCode::MinIntervalWait;

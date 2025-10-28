@@ -44,13 +44,13 @@ public:
   void setPullTime(unsigned long us);
 
   // Read for temperature. Default: TempScale::Celsius.
-  float readTemperature(TempScale = TempScale::Celsius);
+  float readTemperature(TempScale scale = TempScale::Celsius);
 
   // Read for relative humidity.
   float readHumidity();
 
   // Raw
-  ErrorCode rawRead(uint32_t* = NULL);
+  ErrorCode rawRead(uint32_t *dst = NULL);
 
   // Returns the last catched error. Default: ErrorCode::None
   ErrorCode error();
