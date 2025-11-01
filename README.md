@@ -13,7 +13,7 @@ Go to `Sketch |> Include Library |> Add .ZIP Library...`
 ## Usage
 
 ```cpp
-#include <DHT_N128.hpp>
+#include <DHT_N128.h>
 
 #define PIN 7
 
