@@ -1,4 +1,4 @@
-#include "DHT_N128.hpp"
+#include "DHT_N128.h"
 
 // Interval between each communication with the sensor.
 #define MIN_INTERVAL_MILLIS 2000
@@ -8,7 +8,7 @@
 #define CYCLES_TIMEOUT UINT32_MAX
 // "at least 18ms"
 #define DHT11_START_MICROS 18500
-// "1~10ms"
+// "1~10ms"DHT11_START_MICROS
 #define DHT22_START_MICROS 1100
 
 // Macro helper for early return on errors
